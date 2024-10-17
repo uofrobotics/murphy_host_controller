@@ -23,7 +23,7 @@ class ControllerUDPClient:
         self.joystick = pygame.joystick.Joystick(0)
         self.joystick.init()
         self.screen = pygame.display.set_mode(self.screen_size)
-        pygame.display.set_caption("Gamepad Input")
+        pygame.display.set_caption("UDP Stream GUI")
         self.font = pygame.font.Font(None, 28)
         self.bg_color = (230, 230, 230)  # Light gray background
         self.border_color = (50, 50, 50)  # Dark gray for borders
@@ -126,6 +126,15 @@ class ControllerUDPClient:
                     if event.type == pygame.QUIT:
                         pygame.quit()
                         return
+                    elif event.type == pygame.KEYDOWN:
+                        # Check for Escape key to close the program
+                        if event.key == pygame.K_ESCAPE:
+                            print("Exiting program...")
+                            pygame.quit()
+                            return
+                        # Check for Space key to start/stop sending packets
+                        elif event.key == pygame.K_SPACE:
+                            self.toggle_sending()
                     elif event.type == pygame.MOUSEBUTTONDOWN:
                         # Check if the button was clicked
                         if self.button_rect.collidepoint(event.pos):
@@ -134,8 +143,12 @@ class ControllerUDPClient:
                 self.display_controller_info()
                 self.send_data(self.data)
                 time.sleep(0.25)
+        except KeyboardInterrupt:
+            print("Keyboard interrupt received. Exiting...")
         finally:
             self.udp_socket.close()
+            pygame.quit()
+
 
 def main():
     load_dotenv()
