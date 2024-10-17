@@ -76,7 +76,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
             screen.blit(button_text, (10, 300 + i * 40))
 
         pygame.display.update()
-        time.sleep(0.5)
+        time.sleep(0.1)
 
 
 
