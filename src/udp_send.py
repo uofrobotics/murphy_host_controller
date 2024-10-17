@@ -5,80 +5,86 @@ import pygame
 from dotenv import load_dotenv
 import socket
 
-load_dotenv()
-# Initialize Pygame
-pygame.init()
+class ControllerUDPClient:
+    def __init__(self, jetson_ip, jetson_port, screen_size=(800, 800)):
+        self.jetson_ip = jetson_ip
+        self.jetson_port = jetson_port
+        self.screen_size = screen_size
+        self.packet_count = 1
+        self.data = [0.0] * 2
+        self.setup_pygame()
+        self.udp_socket = self.create_udp_socket()
 
-# Initialize controller/joystick
-joystick = pygame.joystick.Joystick(0)
-joystick.init()
-data = [0.0] * 2
-packet_count = 1
+    def setup_pygame(self):
+        pygame.init()
+        self.joystick = pygame.joystick.Joystick(0)
+        self.joystick.init()
+        self.screen = pygame.display.set_mode(self.screen_size)
+        pygame.display.set_caption("Gamepad Input")
+        self.font = pygame.font.Font(None, 36)
 
-screen = pygame.display.set_mode((800, 800))
-pygame.display.set_caption("Gamepad Input")
+    def create_udp_socket(self):
+        return socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-font = pygame.font.Font(None, 36)
-
-# JETSON NANO IP ADDRESS + PORT
-jetson_ip = os.getenv('JETSON_IP')
-jetson_port = int(os.getenv('JETSON_PORT'))
-
-# Create a UDP socket
-with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-
-        screen.fill((255, 255, 255))
-
-        # Display the controller name
-        name_text = font.render(f"Controller: {joystick.get_name()}", True, (0, 0, 0))
-        screen.blit(name_text, (10, 10))
-
-                # Display the joystick values
-        for i in range(joystick.get_numaxes()):
-            axis_value = round(joystick.get_axis(i), 2)
-            axis_text = font.render(f"Axis {i}: {axis_value:.2f}", True, (0, 0, 0))
-            screen.blit(axis_text, (10, 50 + i * 40))
-
-            # Send gamepad input data to the Jetson Nano
-            
-            if (i == 0 or i == 1):
-                data[i] = axis_value
-                
-            # if i < len(data):  
-            #    data[i] = axis_value
-            # else:
-            #     # Handle an index error if the joystick has more axes than expected
-            #     print(f"Index {i} is out of range for the data array")
-
+    def send_data(self, data):
         data_json = json.dumps(data)
-        
         try:
-            # Send the data over UDP
             start_time = time.perf_counter_ns()
-            udp_socket.sendto(data_json.encode('utf-8'), (jetson_ip, jetson_port))
+            self.udp_socket.sendto(data_json.encode('utf-8'), (self.jetson_ip, self.jetson_port))
             end_time = time.perf_counter_ns()
             elapsed_time = end_time - start_time
-            print(f"({ packet_count }) Packet took {elapsed_time / 1000} milliseconds to send")
-            packet_count += 1
+            print(f"({self.packet_count}) Packet took {elapsed_time / 1000} microseconds to send")
+            self.packet_count += 1
         except Exception as e:
             print(f"Error sending data: {str(e)}")
-            
 
-        # Display the button states
-        for i in range(joystick.get_numbuttons()):
-            button_state = joystick.get_button(i)
-            button_text = font.render(f"Button {i}: {button_state}", True, (0, 0, 0))
-            screen.blit(button_text, (10, 300 + i * 40))
+    def display_controller_info(self):
+        self.screen.fill((255, 255, 255))
+        # Display controller name
+        name_text = self.font.render(f"Controller: {self.joystick.get_name()}", True, (0, 0, 0))
+        self.screen.blit(name_text, (10, 10))
+
+        # Display axis values
+        for i in range(self.joystick.get_numaxes()):
+            axis_value = round(self.joystick.get_axis(i), 2)
+            axis_text = self.font.render(f"Axis {i}: {axis_value:.2f}", True, (0, 0, 0))
+            self.screen.blit(axis_text, (10, 50 + i * 40))
+            # Update data for UDP sending
+            if i < len(self.data):
+                self.data[i] = axis_value
+
+        # Display button states
+        for i in range(self.joystick.get_numbuttons()):
+            button_state = self.joystick.get_button(i)
+            button_text = self.font.render(f"Button {i}: {button_state}", True, (0, 0, 0))
+            self.screen.blit(button_text, (10, 300 + i * 40))
 
         pygame.display.update()
-        time.sleep(0.1)
 
+    def run(self):
+        try:
+            while True:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        return
+                self.display_controller_info()
+                self.send_data(self.data)
+                time.sleep(0.25)
+        finally:
+            self.udp_socket.close()
 
+def main():
+    load_dotenv()
+    jetson_ip = os.getenv('JETSON_IP')
+    jetson_port = int(os.getenv('JETSON_PORT'))
 
+    if not jetson_ip or not jetson_port:
+        print("Jetson IP or port is not set. Please check your .env file.")
+        return
 
+    controller_client = ControllerUDPClient(jetson_ip, jetson_port)
+    controller_client.run()
 
+if __name__ == "__main__":
+    main()
