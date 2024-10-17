@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import socket
 
 class ControllerUDPClient:
-    def __init__(self, jetson_ip, jetson_port, screen_size=(800, 600), max_feed_items=10):
+    def __init__(self, jetson_ip, jetson_port, screen_size=(800, 600), max_feed_items=9):
         self.jetson_ip = jetson_ip
         self.jetson_port = jetson_port
         self.screen_size = screen_size
@@ -24,7 +24,9 @@ class ControllerUDPClient:
         self.joystick.init()
         self.screen = pygame.display.set_mode(self.screen_size)
         pygame.display.set_caption("UDP Stream GUI")
-        self.font = pygame.font.Font(None, 28)
+        
+        self.font = pygame.font.Font(None, 28)  # Regular font
+        self.heading_font = pygame.font.Font(None, 36)  # Larger font for headings
         self.bg_color = (230, 230, 230)  # Light gray background
         self.border_color = (50, 50, 50)  # Dark gray for borders
 
@@ -32,6 +34,7 @@ class ControllerUDPClient:
         self.button_rect = pygame.Rect(20, 500, 200, 50)
         self.button_color = (0, 255, 0)  # Green for start
         self.button_text = "Start Sending"
+
 
     def create_udp_socket(self):
         return socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -79,11 +82,15 @@ class ControllerUDPClient:
         axes_area = pygame.Rect(20, 20, 360, 320)
         pygame.draw.rect(self.screen, self.border_color, axes_area, 2)
 
+        # Heading for controller section
+        controller_heading = self.heading_font.render("Controller Input", True, (0, 0, 128))  # Dark blue
+        self.screen.blit(controller_heading, (30, 25))
+
         # Display axes values within the bordered area
         for i in range(self.joystick.get_numaxes()):
             axis_value = round(self.joystick.get_axis(i), 2)
             axis_text = self.font.render(f"Axis {i}: {axis_value:.2f}", True, (0, 0, 0))
-            self.screen.blit(axis_text, (30, 30 + i * 40))
+            self.screen.blit(axis_text, (30, 50 + i * 40))
 
             # Update data for UDP sending
             if i < len(self.data):
@@ -107,6 +114,7 @@ class ControllerUDPClient:
         # Display packet feed
         self.display_packet_feed()
 
+
         pygame.display.update()
 
     def display_packet_feed(self):
@@ -114,10 +122,15 @@ class ControllerUDPClient:
         feed_area = pygame.Rect(400, 20, 380, 320)
         pygame.draw.rect(self.screen, self.border_color, feed_area, 2)
 
+        # Heading for packet feed section
+        packet_feed_heading = self.heading_font.render("Packet Feed", True, (0, 0, 128))  # Dark blue
+        self.screen.blit(packet_feed_heading, (410, 25))
+
         # Display recent packets within the bordered area
         for index, packet in enumerate(self.packet_feed):
             packet_text = self.font.render(packet, True, (0, 0, 0))
-            self.screen.blit(packet_text, (410, 30 + index * 30))
+            self.screen.blit(packet_text, (410, 50 + index * 30))
+
 
     def run(self):
         try:
