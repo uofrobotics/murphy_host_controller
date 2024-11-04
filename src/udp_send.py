@@ -35,7 +35,6 @@ class ControllerUDPClient:
         self.button_color = (0, 255, 0)  # Green for start
         self.button_text = "Start Sending"
 
-
     def create_udp_socket(self):
         return socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -114,7 +113,6 @@ class ControllerUDPClient:
         # Display packet feed
         self.display_packet_feed()
 
-
         pygame.display.update()
 
     def display_packet_feed(self):
@@ -130,7 +128,6 @@ class ControllerUDPClient:
         for index, packet in enumerate(self.packet_feed):
             packet_text = self.font.render(packet, True, (0, 0, 0))
             self.screen.blit(packet_text, (410, 50 + index * 30))
-
 
     def run(self):
         try:
@@ -161,7 +158,6 @@ class ControllerUDPClient:
         finally:
             self.udp_socket.close()
             pygame.quit()
-
 
 def main():
     load_dotenv()
